@@ -11,6 +11,8 @@ pub enum ExportType {
     Html,
     /// Text file export
     Txt,
+    /// Json file export
+    Json,
 }
 
 impl ExportType {
@@ -19,6 +21,7 @@ impl ExportType {
         match platform.to_lowercase().as_str() {
             "txt" => Some(Self::Txt),
             "html" => Some(Self::Html),
+            "json" => Some(Self::Json),
             _ => None,
         }
     }
@@ -28,6 +31,7 @@ impl Display for ExportType {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ExportType::Txt => write!(fmt, "txt"),
+            ExportType::Json => write!(fmt, "json"),
             ExportType::Html => write!(fmt, "html"),
         }
     }
@@ -61,9 +65,15 @@ mod tests {
     }
 
     #[test]
+    fn can_parse_json_any_case() {
+        assert!(matches!(ExportType::from_cli("json"), Some(ExportType::Json)));
+        assert!(matches!(ExportType::from_cli("JSON"), Some(ExportType::Json)));
+        assert!(matches!(ExportType::from_cli("Json"), Some(ExportType::Json)));
+    }
+
+    #[test]
     fn cant_parse_invalid() {
         assert!(ExportType::from_cli("pdf").is_none());
-        assert!(ExportType::from_cli("json").is_none());
         assert!(ExportType::from_cli("").is_none());
     }
 }
