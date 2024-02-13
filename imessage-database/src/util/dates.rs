@@ -52,7 +52,7 @@ pub fn format(date: &Result<DateTime<Local>, MessageError>) -> String {
 pub fn format_utc(date: &Result<DateTime<Local>, MessageError>) -> String {
     match date {
         Ok(d) => {
-            let timestamp = d.timestamp_millis();
+            let timestamp = d.timestamp_millis() / 1000;
             timestamp.to_string()
         },
         Err(why) => why.to_string(),

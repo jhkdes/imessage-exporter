@@ -204,7 +204,7 @@ impl<'a> Writer<'a> for JSON<'a> {
                     Ok(s) => s,
                     Err(why) => format!("{}, {}", message.guid, why),
                 };
-                self.add_line(&mut formatted_message, &format!("\"action\": \"{}\",", edited), &indent);
+                self.add_line(&mut formatted_message, &format!("\"action\": \"{}\",", edited.replace("\n", "\\n").replace("\"", "\\\"")), &indent);
                 continue;
             }
             match message_part {
@@ -217,7 +217,8 @@ impl<'a> Writer<'a> for JSON<'a> {
                             &indent,
                         );
                     } else {
-                        self.add_line(&mut formatted_message, &format!("\"msg_text\": \"{}\",", text), &indent);
+                        self.add_line(&mut formatted_message, &format!("\"msg_text\": \"{}\",", text.replace("\n", "\\n").replace("\"", "\\\"")), &indent);
+                        self.add_line(&mut formatted_message, &"\"msg_type\": \"chat\",", &indent);
                     }
                 }
                 BubbleType::Attachment => match attachments.get_mut(attachment_index) {
@@ -225,14 +226,17 @@ impl<'a> Writer<'a> for JSON<'a> {
                         if attachment.is_sticker {
                             let result = self.format_sticker(attachment, message);
                             self.add_line(&mut formatted_message, &result, &indent);
+                            self.add_line(&mut formatted_message, &"\"msg_type\": \"sticker\",", &indent);
                         } else {
                             match self.format_attachment(attachment, message) {
                                 Ok(result) => {
                                     attachment_index += 1;
                                     self.add_line(&mut formatted_message, &result, &indent);
+                                    self.add_line(&mut formatted_message, &"\"msg_type\": \"attachment\",", &indent);
                                 }
                                 Err(result) => {
                                     self.add_line(&mut formatted_message, result, &indent);
+                                    self.add_line(&mut formatted_message, &"\"msg_type\": \"attachment-err\",", &indent);
                                 }
                             }
                         }
@@ -242,12 +246,18 @@ impl<'a> Writer<'a> for JSON<'a> {
                 },
                 BubbleType::App => match self.format_app(message, &mut attachments, &indent) {
                     // We use an empty indent here because `format_app` handles building the entire message
-                    Ok(ok_bubble) => self.add_line(&mut formatted_message, &ok_bubble, ""),
-                    Err(why) => self.add_line(
-                        &mut formatted_message,
-                        &format!("Unable to format app message: {why}"),
-                        &indent,
-                    ),
+                    // - ok_bubble includes the shared link to an article
+                    Ok(ok_bubble) => {
+                        // self.add_line(&mut formatted_message, &ok_bubble, "");
+                        self.add_line(&mut formatted_message, &format!("\"msg_text\": \"{}\",", ok_bubble.replace("\n", "\\n").replace("\"", "\\\"")), &indent);
+                        self.add_line(&mut formatted_message, &"\"msg_type\": \"chat\",", &indent);
+                    }
+                    Err(why) => {
+                        self.add_line(
+                            &mut formatted_message,
+                            &format!("Unable to format app message: {why}"),
+                            &indent);
+                    }
                 },
             };
 
@@ -258,6 +268,7 @@ impl<'a> Writer<'a> for JSON<'a> {
                     self.format_expressive(message),
                     &indent,
                 );
+                self.add_line(&mut formatted_message, &"\"msg_type\": \"expressives\",", &indent);
             }
 
             // Handle Reactions
@@ -279,8 +290,9 @@ impl<'a> Writer<'a> for JSON<'a> {
                         })?;
 
                     if !formatted_reactions.is_empty() {
-                        self.add_line(&mut formatted_message, "Reactions:", &indent);
-                        self.add_line(&mut formatted_message, &formatted_reactions, &indent);
+                        self.add_line(&mut formatted_message, &format!("\"action\": \"{}\",", formatted_reactions.replace("\n", "\\n").replace("\"", "\\\"")), &indent);
+                        // self.add_line(&mut formatted_message, "Reactions:", &indent);
+                        // self.add_line(&mut formatted_message, &formatted_reactions, &indent);
                     }
                 }
             }
