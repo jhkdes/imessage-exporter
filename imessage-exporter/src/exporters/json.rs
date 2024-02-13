@@ -231,7 +231,9 @@ impl<'a> Writer<'a> for JSON<'a> {
                             match self.format_attachment(attachment, message) {
                                 Ok(result) => {
                                     attachment_index += 1;
-                                    self.add_line(&mut formatted_message, &result, &indent);
+                                    // self.add_line(&mut formatted_message, &result, &indent);
+                                    // 'result' contains local file path to the attachment
+                                    self.add_line(&mut formatted_message, &format!("\"msg_text\": \"{}\",", result.replace("\n", "\\n").replace("\"", "\\\"")), &indent);
                                     self.add_line(&mut formatted_message, &"\"msg_type\": \"attachment\",", &indent);
                                 }
                                 Err(result) => {
